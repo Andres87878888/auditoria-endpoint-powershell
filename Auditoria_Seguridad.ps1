@@ -1,4 +1,10 @@
 clear
+# Definir ruta del archivo de reporte
+$ReportePath = ".\Reporte_Seguridad_Local.txt"
+
+# Iniciar la captura de pantalla hacia el archivo de texto de forma simultanea
+Start-Transcript -Path $ReportePath -Force | Out-Null
+
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "    INICIANDO ANALISIS DE SEGURIDAD LOCAL (ENDPOINT)     " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -29,13 +35,19 @@ if ($FirewallPublic.Enabled -eq "True" -and $FirewallPrivate.Enabled -eq "True")
 }
 Write-Host ""
 
-# 3. CONEXIONES Y PUERTOS ABIERTOS
+# 3. AUDITORIA DE USUARIOS ADMINISTRADORES LOCALES
+Write-Host "[*] AUDITANDO MIEMBROS DEL GRUPO ADMINISTRADORES..." -ForegroundColor Yellow
+Write-Host "    (Verifica que no existan cuentas desconocidas con privilegios altos)" -ForegroundColor Gray
+Get-LocalGroupMember -Group "Administradores" | Select-Object Name, PrincipalSource | Format-Table
+Write-Host ""
+
+# 4. CONEXIONES Y PUERTOS ABIERTOS
 Write-Host "[*] ESCANEANDO PUERTOS INTERNOS Y CONEXIONES ACTIVAS..." -ForegroundColor Yellow
 Write-Host "    (Mostrando las primeras 5 conexiones locales para auditoria)" -ForegroundColor Gray
 Get-NetTCPConnection | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, State -First 5 | Format-Table
 Write-Host ""
 
-# 4. REVISION DE ACTUALIZACIONES CRITICAS PENDIENTES
+# 5. REVISION DE ACTUALIZACIONES CRITICAS PENDIENTES
 Write-Host "[*] BUSCANDO PARCHES DE SEGURIDAD PENDIENTES..." -ForegroundColor Yellow
 Write-Host "    (Esto puede tardar unos segundos)..." -ForegroundColor Gray
 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
@@ -58,5 +70,11 @@ if ($SearchResult.Updates.Count -eq 0) {
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "            ANALISIS COMPLETADO EXITOSAMENTE              " -ForegroundColor Cyan
+Write-Host "    [i] Se ha guardado una copia de este reporte en:" -ForegroundColor Gray
+Write-Host "        $ReportePath" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
+
+# Detener la captura del reporte
+Stop-Transcript | Out-Null
+
 Read-Host "Presiona Enter para salir"
